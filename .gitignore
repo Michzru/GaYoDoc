@@ -2,4 +2,3 @@ data/
 .cache/
 .venv
 
-/model_weights/unitable/*
