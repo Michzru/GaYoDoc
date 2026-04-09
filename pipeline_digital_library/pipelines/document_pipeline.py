@@ -12,7 +12,6 @@ def run_document_pipeline(pdf_path: str, verbose = True, gpu=True) -> dict:
 
     # Stage 0: Convert pdf to png
     pngs, filename = get_png_images(pdf_path, verbose=verbose)
-    pngs = pngs[:5]
 
     # Stage 1: YOLO detection
     yolo_detection_results = run_yolo_detection(pngs, filename, verbose=verbose, gpu=gpu)
