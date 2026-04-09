@@ -1,6 +1,6 @@
-# pipeline_digital_library
+# GaYoDoc
 
-A document processing pipeline that extracts structured information from PDF files using layout detection, OCR, graph neural networks, and table structure recognition.
+A document processing pipeline that extracts structured information from PDF files using layout detection, OCR, graph neural network, and table structure recognition.
 
 ## Installation
 
@@ -8,18 +8,33 @@ A document processing pipeline that extracts structured information from PDF fil
 pip install -e .
 ```
 
-Requires Python 3.11+. For GPU acceleration on Apple Silicon, MPS is supported automatically.
+## Download Model Weights
 
-## Model Weights
+Place all weights in the `model_weights/` directory at the project root.
 
-Download the following model weights and place them in the `model_weights/` directory at the project root:
+**DocLayout-YOLO** — run the provided download script:
+```bash
+python scripts/download_yolo_model.py
+```
 
-| File | Purpose |
-|------|---------|
-| `doclayout_yolo_doclaynet_imgsz1120_docsynth_pretrain.pt` | Layout detection (DocLayout-YOLO) |
-| `best_model.pt` | Node reclassification and relation prediction (GAT) |
-| `unitable_structure.pt` | Table structure recognition |
-| `unitable_bbox.pt` | Table bounding box recognition |
+**GAT model** (`best_model.pt`) — included in the repository under `model_weights/`.
+
+**UniTable** — download `unitable_large_structure.pt` and `unitable_large_bbox.pt` from:
+- https://huggingface.co/poloclub/UniTable/tree/main
+- or https://github.com/poloclub/unitable
+
+Place them in `model_weights/unitable/`.
+
+After setup, your `model_weights/` directory should look like this:
+
+```
+model_weights/
+├── doclayout_yolo_doclaynet_imgsz1120_docsynth_pretrain.pt
+├── best_model.pt
+└── unitable/
+    ├── unitable_large_structure.pt
+    └── unitable_large_bbox.pt
+```
 
 ## Usage
 
@@ -44,7 +59,7 @@ The pipeline processes a PDF through six sequential stages:
 Converts each page of the PDF to a high-resolution PNG image.
 
 **Stage 1 — Layout Detection (YOLO)**  
-Runs DocLayout-YOLO to detect document elements on each page and assigns them an initial label from the DocLayNet taxonomy: `Caption`, `Picture`, `Table`, `Formula`, `Section-header`, `Page-footer`, `Page-header`, `Other`.
+Runs DocLayout-YOLO to detect document elements on each page and assigns them an initial label from the DocLayNet taxonomy: `Caption`, `Picture`, `Table`, `Formula`, `Section-header`, `Page-footer`, `Page-header`, and more.
 
 **Stage 2 — OCR (EasyOCR)**  
 Performs full-page OCR and assigns extracted text to each detected node.
@@ -140,7 +155,7 @@ pipeline_digital_library/
 │   └── core.py                 # Public API entry point
 ├── model_weights/              # Downloaded model checkpoints (not included)
 ├── data/                       # Input documents
-├── scripts/                    # Utility scripts
+├── scripts/                    # Download and Visualization Scripts
 └── pyproject.toml
 ```
 
@@ -156,3 +171,12 @@ brew install poppler
 # Ubuntu/Debian
 apt install poppler-utils
 ```
+
+## Credits
+
+This pipeline builds on the following open-source projects:
+
+- **[DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO)** — document layout detection
+- **[EasyOCR](https://github.com/JaidedAI/EasyOCR)** — optical character recognition  
+- **[UniTable](https://github.com/poloclub/unitable)** — table structure recognition
+- **[sentence-transformers](https://github.com/UKPLab/sentence-transformers)** — text embeddings (`all-MiniLM-L6-v2`)
