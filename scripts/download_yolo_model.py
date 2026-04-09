@@ -1,5 +1,4 @@
 from huggingface_hub import hf_hub_download
-import os
 
 filepath = hf_hub_download(
     repo_id="juliozhao/DocLayout-YOLO-DocLayNet-Docsynth300K_pretrained",

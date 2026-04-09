@@ -11,13 +11,9 @@ from bs4 import BeautifulSoup
 
 from ..models.ocr import get_ocr_model
 from ..utils.iou import crop_with_margin
-from config import UNITABLE_DIR
+from ..config import UNITABLE_DIR
 from ..utils.iou import safe_crop
 sys.path.insert(0, UNITABLE_DIR)
-
-unitable_root = str(Path(__file__).parent.parent / "models" / "unitable")
-if unitable_root not in sys.path:
-    sys.path.insert(0, unitable_root)
 
 from ..models.unitable.src.utils import (
     subsequent_mask,
