@@ -1,8 +1,14 @@
 data/
 .cache/
 .venv/
+pipeline_digital_library.egg-info/
+model_weights/unitable/
 
-pipeline_digital_library.egg-info
-model_weights/unitable/*
+# System / IDE
 .DS_Store
+**/.DS_Store
 .idea/
+**/.idea/
+__pycache__/
+**/__pycache__/
+*.py[cod]
