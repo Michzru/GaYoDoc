@@ -13,7 +13,7 @@ from utils.cache import load_png_images
 # ─────────────────────────────────────────────────────────────────────────────
 pdf_path= "../data/ISLP_website.pdf"
 json_path = "../data/outputs/ISLP_website.json"
-output_dir = "../data/interactive_pages_01"
+output_dir = "../data/islp_debug"
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -362,9 +362,12 @@ body {{ background: var(--bg); color: var(--text); font-family: var(--sans); fon
     <img src="image_{page_number}.png" alt="Page {page_number}">
     <svg class="edges-svg">
       <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-          <polygon points="0 0, 8 4, 0 8" fill="#ef4444"/>
-        </marker>
+        <marker id="arrow-fig" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="#fb923c"/> </marker>
+        <marker id="arrow-tab" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/> </marker>
+        <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="#ef4444"/> </marker>
       </defs>
       {svg_edges_html}
     </svg>
@@ -732,11 +735,12 @@ for page_data in document_data["pages"]:
 
     # ── SVG EDGES ──
     svg_edges_html = ""
-    CAPTION_PARTNERS = {"Picture", "Table"}
     best_edges = {}
 
     for edge in edges_list:
-        prob = edge.get("probability", 1.0)
+        prob = edge.get("confidence", edge.get("probability", 1.0))
+        rel_type = edge.get("relation_type", None)
+
         if prob < 0.4: continue
 
         src_raw = edge.get("source", edge.get("from"))
@@ -751,34 +755,57 @@ for page_data in document_data["pages"]:
         src_label = get_node_label(nodes_list[src_idx])[0]
         dst_label = get_node_label(nodes_list[dst_idx])[0]
 
-        obj_idx = cap_idx = None
-        if src_label in CAPTION_PARTNERS and dst_label == "Caption":
-            obj_idx, cap_idx = src_idx, dst_idx
-        elif dst_label in CAPTION_PARTNERS and src_label == "Caption":
-            obj_idx, cap_idx = dst_idx, src_idx
+        # ── Colour by relation_type first, then fall back to label heuristics ──
+        edge_color = "#ef4444"
+        marker_id = "arrow-default"
+        text_color = "#fca5a5"
 
-        # Cache edges retaining only the highest probability links for layout cleanliness
-        if obj_idx is not None:
-            if obj_idx not in best_edges or prob > best_edges[obj_idx]["prob"]:
-                best_edges[obj_idx] = {"src": obj_idx, "dst": cap_idx, "prob": prob}
+        if rel_type == 2 or src_label == "Table" or dst_label == "Table":
+            edge_color, marker_id, text_color = "#38bdf8", "arrow-tab", "#bae6fd"
+        elif rel_type == 1 or src_label == "Picture" or dst_label == "Picture":
+            edge_color, marker_id, text_color = "#fb923c", "arrow-fig", "#fed7aa"
+
+        # ── Resolve obj/cap indices ──
+        # Priority: label-based (definitive) → relation_type fallback → skip
+        obj_idx = cap_idx = None
+
+        if src_label in {"Picture", "Table"} and dst_label == "Caption":
+            obj_idx, cap_idx = src_idx, dst_idx
+        elif dst_label in {"Picture", "Table"} and src_label == "Caption":
+            obj_idx, cap_idx = dst_idx, src_idx
+        elif rel_type in (1, 2):
+            # GAT knows the relation type even when node labels don't match
+            # Treat source as the object, destination as the caption
+            obj_idx, cap_idx = src_idx, dst_idx
+
+        if obj_idx is None:
+            continue
+
+        if obj_idx not in best_edges or prob > best_edges[obj_idx]["prob"]:
+            best_edges[obj_idx] = {
+                "src": src_idx, "dst": dst_idx,  # ← nie cap_idx, ale dst_idx
+                "prob": prob,
+                "color": edge_color, "marker": marker_id, "tcolor": text_color
+            }
 
     for obj_idx, ed in best_edges.items():
         sn = nodes_list[ed["src"]]
         dn = nodes_list[ed["dst"]]
         prob = ed["prob"]
+
         sc = sn["geometry"]["normalized_center"]
         dc = dn["geometry"]["normalized_center"]
         x1, y1 = sc[0] * 100, sc[1] * 100
         x2, y2 = dc[0] * 100, dc[1] * 100
         mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-        opacity = round(max(0.35, prob), 2)
+        opacity = round(max(0.40, prob), 2)
 
         svg_edges_html += (
             f'<line x1="{x1:.2f}%" y1="{y1:.2f}%" x2="{x2:.2f}%" y2="{y2:.2f}%"'
-            f' stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"'
-            f' opacity="{opacity}" stroke-linecap="round" marker-end="url(#arrowhead)"/>\n'
-            f'<rect x="calc({mx:.2f}% - 14px)" y="calc({my:.2f}% - 9px)" width="28" height="18" rx="3" fill="#0d1117" opacity="0.9"/>\n'
-            f'<text x="{mx:.2f}%" y="{my:.2f}%" fill="#fca5a5" font-size="10" font-family="JetBrains Mono,monospace"'
+            f' stroke="{ed["color"]}" stroke-width="2.5" stroke-dasharray="5,4"'
+            f' opacity="{opacity}" stroke-linecap="round" marker-end="url(#{ed["marker"]})"/>\n'
+            f'<rect x="calc({mx:.2f}% - 16px)" y="calc({my:.2f}% - 9px)" width="32" height="18" rx="4" fill="#0d1117" opacity="0.95" stroke="{ed["color"]}" stroke-width="1"/>\n'
+            f'<text x="{mx:.2f}%" y="{my:.2f}%" fill="{ed["tcolor"]}" font-size="9" font-family="JetBrains Mono,monospace"'
             f' font-weight="700" text-anchor="middle" dominant-baseline="central">{prob * 100:.0f}%</text>\n'
         )
 

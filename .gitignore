@@ -12,3 +12,4 @@ model_weights/unitable/
 __pycache__/
 **/__pycache__/
 *.py[cod]
+uv.lock.claude/

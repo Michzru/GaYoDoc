@@ -1,4 +1,4 @@
-# YoGaDoc v0.0.1
+# YoGaDoc v0.0.2
 
 A document processing pipeline that extracts structured information from PDF files using layout detection, OCR, graph neural network, and table structure recognition.
 
@@ -110,6 +110,7 @@ The pipeline returns a dictionary with the following structure:
         {
           "source": 0,
           "target": 1,
+          "relation_type": 2,
           "confidence": 0.94
         }
       ]
@@ -140,6 +141,7 @@ Edges are directed and represent relationships predicted by the GAT model (e.g. 
 |-------|-------------|
 | `source` | `node_id` of the source node |
 | `target` | `node_id` of the target node |
+| `relation_type` | The predicted class of the edge (1 = Caption-Picture, 2 = Caption-Table) |
 | `confidence` | Edge prediction confidence |
 
 ## Project Structure

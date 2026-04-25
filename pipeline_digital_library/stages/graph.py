@@ -49,10 +49,8 @@ def run_graph_inference(data, verbose, gpu):
                 edge_index=edge_index
             ).to(device)
 
-            # Inference
-            z, node_logits = model(batch)
-
-            # Prediction of node classes (reclassification)
+            # Inference of nodes
+            z, node_logits, _ = model(batch)
             pred_classes = node_logits.argmax(dim=-1)
             node_probs = torch.softmax(node_logits, dim=-1)
 
@@ -65,18 +63,45 @@ def run_graph_inference(data, verbose, gpu):
                 node["predicted_confidence"] = round(float(node_probs[i, class_id].item()), 4)
                 node_predicted_classes[node["node_id"]] = class_id
 
-            # Prediction of edges
-            edge_logits = model.predict_edges(z, edge_index)
-            edge_probs = torch.sigmoid(edge_logits)
+            # Prediction of edges based on gat
+            cap_idx = (pred_classes == 0).nonzero(as_tuple=True)[0]
+            partner_idx = ((pred_classes == 1) | (pred_classes == 2)).nonzero(as_tuple=True)[0]
 
             page["edges"] = []
-            for i in range(len(edge_probs)):
-                if edge_probs[i] > 0.5:
-                    page["edges"].append({
-                        "source": int(edge_index[0, i].item()),
-                        "target": int(edge_index[1, i].item()),
-                        "confidence": float(edge_probs[i].item())
-                    })
+
+            if len(cap_idx) > 0 and len(partner_idx) > 0:
+                # Kartézsky súčin
+                src = cap_idx.repeat_interleave(len(partner_idx))
+                dst = partner_idx.repeat(len(cap_idx))
+                edge_index_targets = torch.stack([src, dst], dim=0)
+
+                # 3. Predikcia hrán (pošleme len kandidátov)
+                # POZNÁMKA: Ak tvoja metóda predict_edges vyžaduje aj feat_geom, pridaj ho tam
+                edge_logits = model.predict_edges(z, edge_index_targets, batch.feat_geom)
+
+                # Keďže ide o 3-class klasifikáciu (0=nič, 1=cap-fig, 2=cap-tab)
+                edge_preds = edge_logits.argmax(dim=-1)
+                edge_probs = torch.softmax(edge_logits, dim=-1)
+
+                for i in range(edge_preds.shape[0]):
+                    edge_type = int(edge_preds[i].item())
+
+                    if edge_type > 0:  # Ak to GAT spojil (1 alebo 2)
+                        src_node_idx = int(edge_index_targets[0, i].item())
+                        dst_node_idx = int(edge_index_targets[1, i].item())
+
+                        # Získame skutočné ID uzlov z JSONu
+                        source_id = page["nodes"][src_node_idx]["node_id"]
+                        target_id = page["nodes"][dst_node_idx]["node_id"]
+
+                        page["edges"].append({
+                            "source": source_id,
+                            "target": target_id,
+                            "relation_type": edge_type,  # 1=cap-fig, 2=cap-tab
+                            "confidence": round(float(edge_probs[i, edge_type].item()), 4)
+                        })
+
+
             page.pop("feat_geom", None)
             page.pop("feat_yolo", None)
             page.pop("feat_text", None)

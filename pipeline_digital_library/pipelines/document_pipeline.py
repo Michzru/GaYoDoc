@@ -29,15 +29,15 @@ def run_document_pipeline(pdf_path: str, verbose = True, gpu=True) -> dict:
     final_data = run_table_extraction(graph_data, pngs, verbose=verbose, gpu=gpu)
 
     # Stage 6: save data [optional]
-    #os.makedirs("data/outputs", exist_ok=True)
+    # os.makedirs("data/outputs", exist_ok=True)
+    #
+    # base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+    # output_filepath = os.path.join("data/outputs", f"{base_name}.json")
+    #
+    # with open(output_filepath, "w", encoding="utf-8") as f:
+    #    json.dump(graph_data, f, indent=4, default=lambda x: None)
 
-    #base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-    #output_filepath = os.path.join("data/outputs", f"{base_name}.json")
-
-    #with open(output_filepath, "w", encoding="utf-8") as f:
-    #    json.dump(final_data, f, indent=4, default=lambda x: None)
-
-    #if verbose:
+    # if verbose:
     #    print(f"Data were successfully saved: {output_filepath}")
 
     print("Finished document pipeline")
