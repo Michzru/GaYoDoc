@@ -1,4 +1,4 @@
-# YoGaDoc
+# YoGaDoc v0.0.1
 
 A document processing pipeline that extracts structured information from PDF files using layout detection, OCR, graph neural network, and table structure recognition.
 
