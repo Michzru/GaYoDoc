@@ -6,6 +6,7 @@ from torch_geometric.nn import GATv2Conv
 
 _model = None
 
+
 class DocumentMultiTaskGAT(nn.Module):
     def __init__(self, num_node_classes=8):
         super().__init__()
@@ -93,21 +94,6 @@ class DocumentMultiTaskGAT(nn.Module):
         edge_feat = torch.cat([src_z, dst_z], dim=-1)
 
         if feat_geom is not None:
-            src_g = feat_geom[query_edge_index[0]][:, :6]  # x1,y1,x2,y2,xc,yc
-            dst_g = feat_geom[query_edge_index[1]][:, :6]
-            edge_feat = torch.cat([edge_feat, src_g - dst_g], dim=-1)
-
-        return self.edge_classifier(edge_feat)  # [E, 3] logity
-
-        return z, node_logits, gate
-
-    def predict_edges(self, z, query_edge_index, feat_geom=None):
-        src_z = z[query_edge_index[0]]
-        dst_z = z[query_edge_index[1]]
-        edge_feat = torch.cat([src_z, dst_z], dim=-1)
-
-        if feat_geom is not None:
-            # Geometrické features hrany: pozícia src a dst
             src_g = feat_geom[query_edge_index[0]][:, :6]  # x1,y1,x2,y2,xc,yc
             dst_g = feat_geom[query_edge_index[1]][:, :6]
             edge_feat = torch.cat([edge_feat, src_g - dst_g], dim=-1)
